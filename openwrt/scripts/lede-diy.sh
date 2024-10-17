@@ -312,7 +312,7 @@ merge_package main https://github.com/DHDAXCW/dhdaxcw-app package/new libmbim la
 #一）、主题
 #1）argon主题（lede分支适合lean的lede是lu18）
 rm -rf feeds/luci/themes/luci-theme-argon
-git clone -b 18.06 https://github.com/jerrykuku/luci-theme-argon.git package/diy/luci-theme-argon
+git clone -b master https://github.com/jerrykuku/luci-theme-argon.git package/diy/luci-theme-argon
 
 #2）修改 argon 为默认主题
 sed -i '/set luci.main.mediaurlbase=\/luci-static\/bootstrap/d' feeds/luci/themes/luci-theme-bootstrap/root/etc/uci-defaults/30_luci-theme-bootstrap
@@ -511,7 +511,7 @@ cp -f ./diydata/data/sqm/001-help-translation.patch  feeds/packages/net/sqm-scri
 #1）smartdns（18.06是lede的branch，master分支安装尊贵不上）
 rm -rf feeds/packages/net/smartdns
 rm -rf feeds/luci/applications/luci-app-smartdns
-git clone -b lede https://github.com/pymumu/luci-app-smartdns.git package/diy/luci-app-smartdns
+git clone -b master https://github.com/pymumu/luci-app-smartdns.git package/diy/luci-app-smartdns
 git clone https://github.com/pymumu/openwrt-smartdns.git package/diy/smartdns
 
 mkdir -p package/base-files/files/etc/smartdns
