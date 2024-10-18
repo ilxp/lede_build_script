@@ -87,8 +87,9 @@ rm -rf package/wwan/app/luci-app-spdmodem
 rm -rf package/lean/mentohust
 rm -rf ./feeds/packages/utils/v2dat
 
-#luci-ssl替换
+#luci-ssl替换mbedtls
 #sed -i "s/libustream-mbedtls/libustream-openssl/g" feeds/luci/collections/luci-ssl/Makefile
+#sed -i "s/px5g-mbedtls/px5g-openssl/g" feeds/luci/collections/luci-ssl/Makefile
 
 ###################
 
