@@ -1,0 +1,203 @@
+#!/bin/sh
+
+uci set luci.main.lang=zh_cn
+uci set luci.main.mediaurlbase=/luci-static/argon
+uci commit luci
+
+#uci set system.@system[0].hostname=OprX
+uci set system.@system[0].timezone=CST-8
+uci set system.@system[0].zonename=Asia/Shanghai
+uci -q del system.ntp.server
+uci -q add_list system.ntp.server='ntp.aliyun.com'
+uci -q add_list system.ntp.server='time1.cloud.tencent.com'
+uci -q add_list system.ntp.server='time.ustc.edu.cn'
+uci -q add_list system.ntp.server='cn.pool.ntp.org'
+uci -q add_list system.ntp.server='0.openwrt.pool.ntp.org'
+uci commit system
+
+uci set fstab.@global[0].anon_mount=1
+uci commit fstab
+
+uci set uhttpd.main.redirect_https='0'
+uci commit uhttpd
+
+ln -sf /sbin/ip /usr/bin/ip
+
+#uci set network.lan.ipaddr="192.168.8.1"
+#uci set network.lan.netmask='255.255.255.0'
+#uci set network.lan.dns='127.0.0.1'
+#uci commit network
+
+uci set upnpd.config.enabled='1'
+uci set upnpd.config.external_iface="wan"
+uci commit upnpd
+
+rm -f /usr/lib/lua/luci/view/admin_status/index/mwan.htm
+rm -f /usr/lib/lua/luci/view/admin_status/index/upnp.htm
+rm -f /usr/lib/lua/luci/view/admin_status/index/ddns.htm
+rm -f /usr/lib/lua/luci/view/admin_status/index/minidlna.htm
+
+sed -i 's/\"services\"/\"nas\"/g' /usr/lib/lua/luci/controller/aria2.lua
+sed -i 's/services/nas/g' /usr/lib/lua/luci/view/aria2/overview_status.htm
+sed -i 's/\"services\"/\"nas\"/g' /usr/lib/lua/luci/controller/hd_idle.lua
+sed -i 's/\"services\"/\"nas\"/g' /usr/lib/lua/luci/controller/samba.lua
+sed -i 's/\"services\"/\"nas\"/g' /usr/lib/lua/luci/controller/samba4.lua
+sed -i 's/\"services\"/\"nas\"/g' /usr/lib/lua/luci/controller/minidlna.lua
+sed -i 's/\"services\"/\"nas\"/g' /usr/lib/lua/luci/controller/transmission.lua
+sed -i 's/\"services\"/\"nas\"/g' /usr/lib/lua/luci/controller/mjpg-streamer.lua
+sed -i 's/\"services\"/\"nas\"/g' /usr/lib/lua/luci/controller/p910nd.lua
+sed -i 's/\"services\"/\"nas\"/g' /usr/lib/lua/luci/controller/usb_printer.lua
+sed -i 's/\"services\"/\"nas\"/g' /usr/lib/lua/luci/controller/xunlei.lua
+sed -i 's/services/nas/g'  /usr/lib/lua/luci/view/minidlna_status.htm
+sed -i 's/\"services\"/\"nas\"/g' /usr/lib/lua/luci/controller/nfs.lua
+sed -i 's/\"services\"/\"nas\"/g' /usr/lib/lua/luci/controller/cifs.lua
+sed -i 's/\"services\"/\"nas\"/g' /usr/lib/lua/luci/controller/qbittorrent.lua
+
+sed -i 's#downloads.openwrt.org#mirrors.cloud.tencent.com/lede#g' /etc/opkg/distfeeds.conf
+#sed -i 's#downloads.openwrt.org#mirrors.tuna.tsinghua.edu.cn/openwrt#g' /etc/opkg/distfeeds.conf
+sed -i 's/root::0:0:99999:7:::/root:$1$V4UetPzk$CYXluq4wUazHjmCDBCqXF.:0:0:99999:7:::/g' /etc/shadow
+sed -i 's/root:::0:99999:7:::/root:$1$V4UetPzk$CYXluq4wUazHjmCDBCqXF.:0:0:99999:7:::/g' /etc/shadow
+
+#获取/usr/lib/opkg/info/kernel.control中的第二行“Version: 6.1.76-1-6845aa9a30f20a242bd9b8aa42d8e480”中的6.1.76-1-6845aa9a30f20a242bd9b8aa42d8e480
+#sed -i "/openwrt_core/c\src/gz openwrt_core https://raw.cooluc.com/ilxp/lede-kmod-x86_64/main/$(grep Version /usr/lib/opkg/info/kernel.control | awk '{print $2}')" /etc/opkg/distfeeds.conf
+#sed -i "/openwrt_core/c\src/gz openwrt_core https://raw.gitmirror.com/ilxp/lede-kmod-x86_64/main/$(grep Version /usr/lib/opkg/info/kernel.control | awk '{print $2}')" /etc/opkg/distfeeds.conf
+#sed -i "/openwrt_core/c\src/gz openwrt_core https://ghp.ci/raw.githubusercontent.com/ilxp/eS-kmod-x86_64/main/$(grep Version /usr/lib/opkg/info/kernel.control | awk '{print $2}')" /etc/opkg/distfeeds.conf
+
+
+sed -i '/openwrt_core/d' /etc/opkg/distfeeds.conf
+sed -i "\$a\src/gz openwrt_core https://ghp.ci/raw.githubusercontent.com/ilxp/oprx-es_core/x86_64/$(grep Version /usr/lib/opkg/info/kernel.control | awk '{print $2}')" /etc/opkg/distfeeds.conf
+
+sed -i "s/# //g" /etc/opkg/distfeeds.conf
+sed -i '/openwrt_luci/ { s/snapshots/releases\/18.06.9/g; }'  /etc/opkg/distfeeds.conf
+
+# extra packages
+echo "src/gz openwrt_extras https://opkg.cooluc.com/openwrt-23.05/$(. /etc/openwrt_release ; echo $DISTRIB_ARCH)" >> /etc/opkg/distfeeds.conf
+
+# disable coremark
+sed -i '/coremark/d' /etc/crontabs/root
+crontab /etc/crontabs/root
+
+
+#注释掉软件包的默认的源
+#sed -i 's/src\/gz/\#src\/gz/g' /etc/opkg/distfeeds.conf
+
+sed -i '/check_signature/d' /etc/opkg.conf
+
+sed -i '/REDIRECT --to-ports 53/d' /etc/firewall.user
+echo '#允许本机的53端口可对外访问' >> /etc/firewall.user
+echo '#iptables -A INPUT -p udp -m udp --dport 53 -j ACCEPT' >> /etc/firewall.user
+echo '#iptables -A INPUT -p tcp -m tcp --dport 53 -j ACCEPT' >> /etc/firewall.user
+
+# 开启流量转发功能
+#echo '1' >> /proc/sys/net/ipv4/ip_forward
+#echo '1' >> /proc/sys/net/ipv6/ip_forward
+
+echo '#流量转发规则，将外部到53的端口的请求映射到Dnsmasq服务器的53端口' >> /etc/firewall.user
+echo '#iptables -t nat -A PREROUTING -p udp --dport 53 -j REDIRECT --to-ports 53' >> /etc/firewall.user
+echo '#iptables -t nat -A PREROUTING -p tcp --dport 53 -j REDIRECT --to-ports 53' >> /etc/firewall.user
+echo '#[ -n "$(command -v ip6tables)" ] && ip6tables -t nat -A PREROUTING -p udp --dport 53 -j REDIRECT --to-ports 53' >> /etc/firewall.user
+echo '#[ -n "$(command -v ip6tables)" ] && ip6tables -t nat -A PREROUTING -p tcp --dport 53 -j REDIRECT --to-ports 53' >> /etc/firewall.user
+
+#dnsmasq 设置以及开启 IPv6
+uci set dhcp.lan.ra='server'
+uci set dhcp.lan.dhcpv6='server'
+uci set dhcp.lan.ra_management='1'
+uci set dhcp.lan.ra_default='1'
+
+#以下
+uci set dnsmasq.filter_aaaa='0' #开启解析ipv6
+#uci -q add_list dnsmasq.server='127.0.0.1#6053'
+#uci del dnsmasq.cachesize
+#uci del dnsmasq.noresolv
+#uci set dhcp.@dnsmasq[0].cachesize=0
+#uci set dhcp.@dnsmasq[0].noresolv=1
+#uci set dhcp.@dnsmasq[0].nohosts=1  #新增加一个选项
+uci commit dhcp
+sed -i '/log-facility/d' /etc/dnsmasq.conf
+echo "log-facility=/dev/null" >> /etc/dnsmasq.conf
+
+sed -i '/option disabled/d' /etc/config/wireless
+sed -i '/set wireless.radio${devidx}.disabled/d' /lib/wifi/mac80211.sh
+
+#sed -i '/DISTRIB_REVISION/d' /etc/openwrt_release
+#echo "DISTRIB_REVISION='R21.12.1'" >> /etc/openwrt_release
+#sed -i '/DISTRIB_DESCRIPTION/d' /etc/openwrt_release
+#echo "DISTRIB_DESCRIPTION='OneWRT '" >> /etc/openwrt_release
+
+sed -i 's/OpenWrt/OprX/g' /etc/openwrt_release
+
+sed -i '/log-facility/d' /etc/dnsmasq.conf
+echo "log-facility=/dev/null" >> /etc/dnsmasq.conf
+
+echo 'hsts=0' > /root/.wgetrc
+
+#禁用Docker自动启动
+uci set dockerd.globals.auto_start='0'
+uci commit dockerd
+
+#禁用wrtbwmon自动启动
+uci del wrtbwmon.general.enabled
+uci commit wrtbwmon
+
+# Disable opkg signature check
+sed -i 's/option check_signature/# option check_signature/g' /etc/opkg.conf
+
+# 禁用ipv6前缀
+sed -i 's/^[^#].*option ula/#&/' /etc/config/network
+
+# Disable autostart by default for some packages
+cd /etc/rc.d
+rm -f S98udptools || true
+rm -f S99nft-qos || true
+
+# Try to execute init.sh (if exists)
+if [ ! -f "/boot/init.sh" ]; then
+bash /boot/init.sh
+fi
+
+#禁用某些可能会自启动且用不上的依赖包服务
+/etc/init.d/php7-fastcgi disable 2>/dev/null
+/etc/init.d/php7-fastcgi stop
+/etc/init.d/php7-fpm disable 2>/dev/null
+/etc/init.d/php7-fpm stop
+/etc/init.d/php8-fastcgi disable 2>/dev/null
+/etc/init.d/php8-fastcgi stop
+/etc/init.d/php8-fpm disable 2>/dev/null
+/etc/init.d/php8-fpm stop
+/etc/init.d/softethervpnbridge disable 2>/dev/null
+/etc/init.d/softethervpnbridge stop
+/etc/init.d/softethervpnserver disable 2>/dev/null
+/etc/init.d/softethervpnserver stop
+/etc/init.d/softethervpnclient disable 2>/dev/null
+/etc/init.d/softethervpnclient stop
+/etc/init.d/haproxy disable 2>/dev/null
+/etc/init.d/haproxy stop
+/etc/init.d/kcptun disable 2>/dev/null
+/etc/init.d/kcptun stop
+/etc/init.d/socat disable 2>/dev/null
+/etc/init.d/socat stop
+/etc/init.d/fa-rk3399-pwmfan disable 2>/dev/null
+/etc/init.d/fa-rk3399-pwmfan stop
+/etc/init.d/fa-rk3328-pwmfan disable 2>/dev/null
+/etc/init.d/fa-rk3328-pwmfan stop
+#/etc/init.d/ttyd disable 2>/dev/null
+#/etc/init.d/ttyd stop
+/etc/init.d/shortcut-fe disable 2>/dev/null
+/etc/init.d/shortcut-fe stop
+/etc/init.d/qemu-ga disable 2>/dev/null
+/etc/init.d/qemu-ga stop
+#/etc/init.d/dnsproxy disable 2>/dev/null
+#/etc/init.d/dnsproxy stop
+#/etc/init.d/dockerd disable 2>/dev/null
+/etc/init.d/dockerd stop
+/etc/init.d/mwan3 disable 2>/dev/null
+
+
+chmod 0755 /etc/init.d/*
+#chmod 0755 /etc/init.d/netdata
+[ -f /etc/init.d/netdata ] && chmod +x /etc/init.d/netdata
+
+rm -rf /tmp/luci-modulecache/
+rm -f /tmp/luci-indexcache
+
+exit 0
