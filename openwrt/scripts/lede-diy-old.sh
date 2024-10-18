@@ -92,56 +92,70 @@ sed -ie 's/^\(.\).*vermagic$/\1cp $(TOPDIR)\/.vermagic $(LINUX_DIR)\/.vermagic/'
 #grep HASH include/kernel-6.6 | awk -F'HASH-' '{print $2}' | awk '{print $1}' | md5sum | awk '{print $1}' > .vermagic
 grep HASH include/kernel-$kernel_version | awk -F'HASH-' '{print $2}' | awk '{print $1}' | md5sum | awk '{print $1}' > .vermagic
 
-# 2、Optimization level -Ofast
-#sed -i 's/Os/O2/g' include/target.mk
+#2、奈非
+#rm -rf package/kernel/linux/modules/netfilter.mk
+#wget -N https://raw.githubusercontent.com/immortalwrt/immortalwrt/refs/heads/openwrt-23.05/package/kernel/linux/modules/netfilter.mk -P package/kernel/linux/modules/
+
+#3、中国镜像
+#rm -rf scripts/download.pl
+#wget -N https://raw.githubusercontent.com/immortalwrt/immortalwrt/refs/heads/openwrt-23.05/scripts/download.pl -P scripts/
+
+# 4、Optimization level -Ofast
 sed -i 's/Os/O2 -march=x86-64-v2/g' include/target.mk
 
-# 3、Fix x86 - CONFIG_ALL_KMODS
+# 5、Fix x86 - CONFIG_ALL_KMODS
 sed -i 's/hwmon, +PACKAGE_kmod-thermal:kmod-thermal/hwmon/g' package/kernel/linux/modules/hwmon.mk
 
-# 3、固件版本(21.3.2 %y : 年份的最后两位数字)
+# 6、固件版本(21.3.2 %y : 年份的最后两位数字)
 #date=`TZ=UTC-8 date +%y.%1m.%1d`
 #R$(TZ=UTC-8 date +'%y.%-m.%-d')
 ReV_Date=`TZ=UTC-8 date +%y.%-m.%-d`
 sed -i -e "/\(# \)\?REVISION:=/c\REVISION:=$ReV_Date" -e '/VERSION_CODE:=/c\VERSION_CODE:=$(REVISION)' include/version.mk
 sed -i "s/DISTRIB_DESCRIPTION.*/DISTRIB_DESCRIPTION='OprX eS%C Built By ilxp'/g" package/base-files/files/etc/openwrt_release
 
-# 4、img编译时间前缀。
-#sed -i 's/IMG_PREFIX:=/IMG_PREFIX:=$(shell date +%Y%m%d)-oprx-2203-/g' include/image.mk
+#7、img编译时间前缀。
+#sed -i 's/IMG_PREFIX:=/IMG_PREFIX:=$(shell date +%Y%m%d)-OPOK-2203-/g' include/image.mk
 #sed -i 's/IMG_PREFIX:=$(VERSION_DIST_SANITIZED)/IMG_PREFIX:=$(shell date +%Y%m%d)-oprx/g' include/image.mk  #在编译的时候统一改名字
 #去掉版本号 openwrt-23.05.2-x86-64或者openwrt-23.05-snapshot-r0-60e49cf-x86-64改为openwrt-x86-64
 sed -i 's/IMG_PREFIX:=$(VERSION_DIST_SANITIZED)-$(IMG_PREFIX_VERNUM)$(IMG_PREFIX_VERCODE)$(IMG_PREFIX_EXTRA)/IMG_PREFIX:=$(VERSION_DIST_SANITIZED)-/g' include/image.mk
+#sed -i 's/IMG_PREFIX:=$(VERSION_DIST_SANITIZED)/IMG_PREFIX:=$(shell date +%Y%m%d)-oprx-eS/g' include/image.mk
+
 sed -i 's/IMG_PREFIX:=$(VERSION_DIST_SANITIZED)/IMG_PREFIX:=$(shell date +%m.%d.%Y)-oprx-eS/g' include/image.mk
 
 #Compile_Date=$(TZ=UTC-8 date +'%Y%m%d')
 #FW_VERSION="${Compile_Date}-oprx-eS${ReV_Date}"
 #sed -i "s/IMG_PREFIX:=$(VERSION_DIST_SANITIZED)/IMG_PREFIX:=$FW_VERSION/g" include/image.mk
 
-# 5、修改登陆ip以及主机名
+# 8、修改登陆ip以及主机名
 sed -i "s/192.168.1/192.168.8.1/" package/base-files/files/bin/config_generate
 sed -i "s/OpenWrt/OprX/g" package/base-files/files/bin/config_generate
 # 修改主机名openwrt为OprX （将系统所有包含openwrt改为oprx，慎用）
 #sed -i "s/OpenWrt/OprX/g" package/base-files/files/bin/config_generate package/base-files/image-config.in config/Config-images.in Config.in include/u-boot.mk include/version.mk package/network/config/wifi-scripts/files/lib/wifi/mac80211.sh || true
 
-# 6、内核版本（尽量不要修改，好komd）
-#sed -i 's/KERNEL_PATCHVER:=6.1/KERNEL_PATCHVER:=6.6/g' target/linux/x86/Makefile
+#9、内核版本（尽量不要修改，好komd）
+sed -i 's/KERNEL_PATCHVER:=6.1/KERNEL_PATCHVER:=6.6/g' target/linux/x86/Makefile
 
-# 7、网络连接数
+# 10、网络连接数
 #sed -i 's/net.netfilter.nf_conntrack_max=16384/net.netfilter.nf_conntrack_max=65535/g' package/kernel/linux/files/sysctl-nf-conntrack.conf
 echo -e "\nnet.netfilter.nf_conntrack_max=65535" >> package/kernel/linux/files/sysctl-nf-conntrack.conf
 
-# 8、Fix mt76 wireless driver
+# 11、修复依赖
+sed -i 's/PKG_HASH.*/PKG_HASH:=skip/' feeds/packages/utils/containerd/Makefile
+
+# 12、Fix mt76 wireless driver
 pushd package/kernel/mt76
 sed -i '/mt7662u_rom_patch.bin/a\\techo mt76-usb disable_usb_sg=1 > $\(1\)\/etc\/modules.d\/mt76-usb' Makefile
 popd
 
-# 9、kiddin9大神的####for openwrt
+#####13、kiddin9大神的####for openwrt
+#sed -i 's/Os/O2/g' include/target.mk
 sed -i 's/=bbr/=cubic/' package/kernel/linux/files/sysctl-tcp-bbr.conf
 #for X—86
 sed -i 's/kmod-r8169/kmod-r8168/' target/linux/x86/image/64.mk
+#####kiddin9大神的####
 
 
-# 10、Jejz168大神优化===for lede
+##15、Jejz168大神优化===for lede
 # 设置密码为空（安装固件时无需密码登陆，然后自己修改想要的密码）
 #sed -i '/$1$V4UetPzk$CYXluq4wUazHjmCDBCqXF./d' package/lean/default-settings/files/zzz-default-settings
 
@@ -149,7 +163,7 @@ sed -i 's/kmod-r8169/kmod-r8168/' target/linux/x86/image/64.mk
 sed -i 's/${g}.*/${a}${b}${c}${d}${e}${f}${hydrid}/g' package/lean/autocore/files/x86/autocore
 
 # 修改版本号
-#sed -i "s|DISTRIB_REVISION='.*'|DISTRIB_REVISION='R$(date +%y.%m.%d)'|g" package/lean/default-settings/files/zzz-default-settings
+# sed -i "s|DISTRIB_REVISION='.*'|DISTRIB_REVISION='R$(date +%y.%m.%d)'|g" package/lean/default-settings/files/zzz-default-settings
 
 # 设置ttyd免帐号登录
 sed -i 's/\/bin\/login/\/bin\/login -f root/' feeds/packages/utils/ttyd/files/ttyd.config
@@ -190,7 +204,7 @@ cp -f ./diydata/data/udpxy.lua ./feeds/luci/applications/luci-app-udpxy/luasrc/m
 
 #1）添加编译作者-开源致谢
 #sed -i '/<tr><td width="33%"><%:CPU usage/a <tr><td width="33%"><%:Compiler author%></td><td>ZuiFengGuai</td></tr>' package/lean/autocore/files/x86/index.htm
-sed -i '/<tr><td width="33%"><%:CPU usage/a <tr><td width="33%"><%:Thanks Contribution%></td><td><a target="_blank" href="https://github.com/coolsnowwolf/lede/">欢迎使用OprX-eS系列,感谢Lean大雕对OpenWrt的开源贡献！</a></td></tr>' package/lean/autocore/files/x86/index.htm
+sed -i '/<tr><td width="33%"><%:CPU usage/a <tr><td width="33%"><%:Thanks Contribution%></td><td><a target="_blank" href="https://github.com/coolsnowwolf/lede/">欢迎使用OprX-eS系列,感谢Lean大雕对OpenWRT的开源贡献！</a></td></tr>' package/lean/autocore/files/x86/index.htm
 
 #添加汉化
 sed -i '5a\msgid "Thanks Contribution"' feeds/luci/modules/luci-base/po/zh-cn/base.po
@@ -198,7 +212,7 @@ sed -i '5a\msgid "Thanks Contribution"' feeds/luci/modules/luci-base/po/zh-cn/ba
 sed -i '6a\msgstr "开源致谢"' feeds/luci/modules/luci-base/po/zh-cn/base.po
 sed -i '7a \\' feeds/luci/modules/luci-base/po/zh-cn/base.po
 
-#2）添加赞助地址
+#2）添加固件赞助地址
 sed -i '/<tr><td width="33%"><%:Thanks Contribution/a <tr><td width="33%"><%:Firmware Update%></td><td><a target="_blank" href="https://afdian.com/a/ioprx/plan">赞助我会做得更好！</a></td></tr>' package/lean/autocore/files/x86/index.htm
 #sed -i '/<tr><td width="33%"><%:Thanks Contribution/a <tr><td width="33%"><%:Firmware Update%></td><td>在TTYD终端--输入tools--输入u-选择对应操作即可</td></tr>' package/lean/autocore/files/x86/index.htm
 
@@ -213,12 +227,17 @@ find package/*/ -maxdepth 2 -path "*/Makefile" | xargs -i sed -i 's/include\ \.\
 find package/*/ -maxdepth 2 -path "*/Makefile" | xargs -i sed -i 's/PKG_SOURCE_URL:=\@GHREPO/PKG_SOURCE_URL:=https:\/\/github\.com/g' {}
 find package/*/ -maxdepth 2 -path "*/Makefile" | xargs -i sed -i 's/PKG_SOURCE_URL:=\@GHCODELOAD/PKG_SOURCE_URL:=https:\/\/codeload\.github\.com/g' {}
 
-# 11、ecrasy大神diy===
+#16、ecrasy大神diy===
 #fix.sh的：
 # fix stupid coremark benchmark error
 touch package/base-files/files/etc/bench.log
 chmod 0666 package/base-files/files/etc/bench.log
 echo "Touch coremark log file to fix uhttpd error!!!"
+
+# fix python3.9.12 sys version parse error
+#python3_path="feeds/packages/lang/python/python3"
+#cp ./diydata/openwrt/data/patches/lib-platform-sys-version.patch ${python3_path}/patches/
+#echo "Fix python host compile install error!!!"
 
 # make minidlna depends on libffmpeg-full instead of libffmpeg
 # little bro ffmpeg mini custom be gone
@@ -234,6 +253,11 @@ echo "Remove ipv6-helper depends on odhcpd*"
 #echo "Set luci-app-firewall depends on uci-firewall instead of firewall"
 
 #diy.sh的：
+# Change default shell from ash to bash 
+# Note: bash need to be selected from make menuconfig first
+sed -i 's/\/bin\/ash/\/bin\/bash/g' package/base-files/files/etc/passwd
+echo "Change default shell from ash to bash"
+
 # Replace fgrep with grep -F in /etc/profile
 sed -i 's/fgrep -sq/grep -Fsq/g' package/base-files/files/etc/profile
 echo "Replace fgrep with grep -F in /etc/profile"
@@ -249,10 +273,14 @@ mkdir -p package/base-files/files/etc/hotplug.d/iface
 cp ./diydata/data/92-ula-prefix package/base-files/files/etc/hotplug.d/iface/
 chmod 0755 package/base-files/files/etc/hotplug.d/iface/92-ula-prefix
 echo "Add 92-ula-prefix"
+
+echo -e "DIY Jobs Completed!!!\n"
 ##=====以上来源ecrasy大神========================================================
 
-# 12、骷髅头大神的https://github.com/DHDAXCW/OpenWRT_x86_x64/blob/main/scripts/lean.sh====
-# 更换golang版本
+#17、骷髅头大神的https://github.com/DHDAXCW/OpenWRT_x86_x64/blob/main/scripts/lean.sh====
+# alist golang需要升级为22才能编译xray-core
+
+#git clone https://github.com/sbwml/luci-app-alist package/alist
 rm -rf feeds/packages/lang/golang
 git clone https://github.com/sbwml/packages_lang_golang -b 23.x feeds/packages/lang/golang
 
@@ -265,19 +293,24 @@ git clone https://github.com/sbwml/packages_lang_golang -b 23.x feeds/packages/l
 #sed -i "s/${orig_version}/${orig_version} (${date_version})/g" zzz-default-settings
 #popd
 
-# 更换 libssh libmbim
-rm -rf packages/libs/libssh
-rm -rf packages/libs/libmbim
-merge_package master https://github.com/openwrt/packages.git package/new libs/libssh libs/libmbim
+# Fix libssh
+#rm -rf packages/libs/libssh
+#merge_package master https://github.com/openwrt/packages.git package/new libs/libssh
 
 # dhcp
 sed -i 's/100/6/g' package/network/services/dnsmasq/files/dhcp.conf
 sed -i 's/150/200/g' package/network/services/dnsmasq/files/dhcp.conf
+
+#
+rm -rf package/feeds/packages/libmbim
+rm -rf package/feeds/packages/lame
+merge_package main https://github.com/DHDAXCW/dhdaxcw-app package/new libmbim lame
+
 #=============== 以上来源骷髅头大神================
 
 ###############二、相关luci应用#############################
 #一）、主题
-#1）argon主题（lede分支适合lean的lede是luci18）
+#1）argon主题（lede分支适合lean的lede是lu18）
 rm -rf feeds/luci/themes/luci-theme-argon
 git clone -b master https://github.com/jerrykuku/luci-theme-argon.git package/diy/luci-theme-argon
 
@@ -377,10 +410,10 @@ wget -qO- $GEOIP_URL > package/base-files/files/etc/openclash/GeoIP.dat
 #wget -qO- $GEOSITE_URL > package/base-files/files/etc/openclash/GeoSite.dat #提示已经存在，无法编译
 chmod +x package/base-files/files/etc/openclash/core/clash*
 
-# 4、mihomo（只支持firewall4.lede无望）
+# 4、mihomo （只支持firewall4.lede无望）
 #git clone --depth=1 https://github.com/morytyann/OpenWrt-mihomo package/luci-app-mihomo
 
-# 5、homeproxy（只支持firewall4.lede无望）
+# 5、homeproxy
 #git clone --depth=1 https://github.com/muink/luci-app-homeproxy.git package/diy/luci-app-homeproxy
 #git clone --depth=1 https://github.com/immortalwrt/homeproxy.git package/diy/luci-app-homeproxy
 #rm -rf ./feeds/packages/net/sing-box
@@ -780,10 +813,10 @@ git clone https://github.com/sbwml/package_kernel_r8101 package/kernel/r8101
 git clone https://github.com/sbwml/package_kernel_r8125 package/kernel/r8125
 
 #11、alist
-#rm -rf feeds/packages/lang/golang
-#git clone --depth=1 https://github.com/sbwml/packages_lang_golang feeds/packages/lang/golang
+rm -rf feeds/packages/lang/golang
+git clone --depth=1 https://github.com/sbwml/packages_lang_golang feeds/packages/lang/golang
 git clone --depth=1 -b lua https://github.com/sbwml/luci-app-alist package/alist
-# merge_package master https://github.com/sbwml/luci-app-alist package/new alist
+# merge_package master https://github.com/sbwml/luci-app-alist package/custom alist
 
 #12、diskman
 #rm -Rf package/new/luci-app-diskman
@@ -801,30 +834,28 @@ git clone --depth=1 -b lua https://github.com/sbwml/luci-app-alist package/alist
 
 merge_package master https://github.com/lisaac/luci-app-diskman.git package/new applications/luci-app-diskman
 
-#13、lan口设置  不能在workflow上打。（yaof上能打成功patch，sbwml上不成功）
-#rm -rf target/linux/x86/base-files/etc/board.d/02_network  #清除系统自带的02，需要lede的才能patche成功。
-#wget -N https://raw.githubusercontent.com/coolsnowwolf/lede/master/target/linux/x86/base-files/etc/board.d/02_network -P target/linux/x86/base-files/etc/board.d/
+#13、lan口设置  不能在workflow上打。
 patch -p1 <./diydata/data/patches/def_set_interfaces_lan_wan.patch
 
 #14、chatgpt
 #git clone --depth=1 https://github.com/sirpdboy/luci-app-chatgpt-web package/luci-app-chatgpt
 
 #15、在线升级（通过对链接的前缀10.16.2024进行比较大小进行升级）
-#原地址：https://github.com/ilxp/builder/releases/download/firmware/10.16.2024-OprX-x86-64-generic-squashfs-combined-efi.img.gz
-#原地址：https://github.com/ilxp/builder/releases/download/firmware/vermd5.txt  其中firmware为固定的tag名称。在Release发布的时候注意。
-git clone https://github.com/ilxp/openwrt-gpsysupgrade-kiddin9  package/new/openwrt-gpsysupgrade
+ #原地址：https://github.com/ilxp/builder/releases/download/firmware/10.16.2024-OprX-x86-64-generic-squashfs-combined-efi.img.gz
+ #原地址：https://github.com/ilxp/builder/releases/download/firmware/vermd5.txt  其中firmware为固定的tag名称。在Release发布的时候注意。
+git clone https://github.com/ilxp/openwrt-gpsysupgrade-kiddin9  package/diy/openwrt-gpsysupgrade
 #改仓库名builder
-sed -i "s/builder/oprx-builder/g" package/new/openwrt-gpsysupgrade/luci-app-gpsysupgrade/luasrc/model/cbi/gpsysupgrade/sysupgrade.lua
+sed -i "s/builder/oprx-builder/g" package/diy/openwrt-gpsysupgrade/luci-app-gpsysupgrade/luasrc/model/cbi/gpsysupgrade/sysupgrade.lua
 #改vermd5名称：
-sed -i "s/vermd5/vermd5-eS/g" package/new/openwrt-gpsysupgrade/luci-app-gpsysupgrade/luasrc/model/cbi/gpsysupgrade/sysupgrade.lua
+sed -i "s/vermd5/vermd5-eS/g" package/diy/openwrt-gpsysupgrade/luci-app-gpsysupgrade/luasrc/model/cbi/gpsysupgrade/sysupgrade.lua
 #改固件
-sed -i "s/oprx/oprx-eS/g" package/new/openwrt-gpsysupgrade/luci-app-gpsysupgrade/luasrc/model/cbi/gpsysupgrade/sysupgrade.lua
+sed -i "s/oprx/oprx-eS/g" package/diy/openwrt-gpsysupgrade/luci-app-gpsysupgrade/luasrc/model/cbi/gpsysupgrade/sysupgrade.lua
 #改后的地址：https://github.com/ilxp/oprx-builder/releases/download/firmware/10.16.2024-oprx-es-x86-64-generic-squashfs-combined-efi.img.gz
 #改后的地址：https://github.com/ilxp/oprx-builder/releases/download/firmware/vermd5-eS.txt  #对应固件分类。
 
 
 #2）autoupdate
-#git clone -b main --single-branch https://github.com/ilxp/openwrt-autoupdate.git  package/new/openwrt-autoupdate
+#git clone -b main --single-branch https://github.com/ilxp/openwrt-autoupdate.git  package/diy/openwrt-autoupdate
 #cd package/diy/openwrt-autoupdate
 #rm -rf .git
 #rm -rf .github
@@ -853,8 +884,8 @@ sed -i "s/oprx/oprx-eS/g" package/new/openwrt-gpsysupgrade/luci-app-gpsysupgrade
 #sed -i 's/OP_BRANCH=main/OP_BRANCH=master/g' package/diy/openwrt-autoupdate/autoupdate/files/etc/autoupdate/default
 
 # 16、移动栏目
-sed -i 's/services/nas/g' feeds/luci/applications/luci-app-hd-idle/root/usr/share/luci/menu.d/luci-app-hd-idle.json
-sed -i 's/services/nas/g' feeds/luci/applications/luci-app-samba4/root/usr/share/luci/menu.d/luci-app-samba4.json
+#sed -i 's/services/nas/g' feeds/luci/applications/luci-app-hd-idle/root/usr/share/luci/menu.d/luci-app-hd-idle.json
+#sed -i 's/services/nas/g' feeds/luci/applications/luci-app-samba4/root/usr/share/luci/menu.d/luci-app-samba4.json
 #for lede
 sed -i 's/services/nas/g' feeds/luci/applications/luci-app-samba4/luasrc/controller/samba4.lua
 
@@ -878,6 +909,8 @@ sed -i 's/services/nas/g' feeds/luci/applications/luci-app-samba4/luasrc/control
 #git clone https://github.com/sbwml/fullconenat package/new/nft-fullcone
 
 #14、sbwml大神的优化for23.05
+# x86 - disable intel_pstate & mitigations
+sed -i 's/noinitrd/noinitrd intel_pstate=disable mitigations=off/g' target/linux/x86/image/grub-efi.cfg
 # openssl -Ofast
 sed -i "s/-O3/-Ofast/g" package/libs/openssl/Makefile
 # procps-ng - top
@@ -885,7 +918,6 @@ sed -i 's/enable-skill/enable-skill --disable-modern-top/g' feeds/packages/utils
 # opkg  #lede无法使用。已删
 #mkdir -p package/system/opkg/patches
 #cp -rf ./diydata/data/patches/900-opkg-download-disable-hsts.patch ./package/system/opkg/patches/
-
 # TTYD
 sed -i 's/services/system/g' feeds/luci/applications/luci-app-ttyd/root/usr/share/luci/menu.d/luci-app-ttyd.json
 sed -i '3 a\\t\t"order": 50,' feeds/luci/applications/luci-app-ttyd/root/usr/share/luci/menu.d/luci-app-ttyd.json
@@ -959,5 +991,10 @@ sed -i 's/cheaper = 1/cheaper = 2/g' feeds/packages/net/uwsgi/files-luci-support
 # rpcd
 sed -i 's/option timeout 30/option timeout 60/g' package/system/rpcd/files/rpcd.config
 sed -i 's#20) \* 1000#60) \* 1000#g' feeds/luci/modules/luci-base/htdocs/luci-static/resources/rpc.js
+
+# 22、移动栏目
+sed -i 's/services/nas/g' feeds/luci/applications/luci-app-hd-idle/root/usr/share/luci/menu.d/luci-app-hd-idle.json
+sed -i 's/services/nas/g' feeds/luci/applications/luci-app-samba4/root/usr/share/luci/menu.d/luci-app-samba4.json
+
 
 ##########################################################################
