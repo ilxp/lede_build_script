@@ -118,7 +118,7 @@ sed -i 's/IMG_PREFIX:=$(VERSION_DIST_SANITIZED)/IMG_PREFIX:=$(shell date +%m.%d.
 #sed -i "s/IMG_PREFIX:=$(VERSION_DIST_SANITIZED)/IMG_PREFIX:=$FW_VERSION/g" include/image.mk
 
 # 5、修改登陆ip以及主机名
-sed -i "s/192.168.1/192.168.8.1/" package/base-files/files/bin/config_generate
+sed -i "s/192.168.1.1/192.168.8.1/" package/base-files/files/bin/config_generate
 sed -i "s/OpenWrt/OprX/g" package/base-files/files/bin/config_generate
 # 修改主机名openwrt为OprX （将系统所有包含openwrt改为oprx，慎用）
 #sed -i "s/OpenWrt/OprX/g" package/base-files/files/bin/config_generate package/base-files/image-config.in config/Config-images.in Config.in include/u-boot.mk include/version.mk package/network/config/wifi-scripts/files/lib/wifi/mac80211.sh || true
@@ -139,7 +139,6 @@ popd
 sed -i 's/=bbr/=cubic/' package/kernel/linux/files/sysctl-tcp-bbr.conf
 #for X—86
 sed -i 's/kmod-r8169/kmod-r8168/' target/linux/x86/image/64.mk
-
 
 # 10、Jejz168大神优化===for lede
 # 设置密码为空（安装固件时无需密码登陆，然后自己修改想要的密码）
@@ -207,7 +206,7 @@ sed -i '8a\msgid "Firmware Update"' feeds/luci/modules/luci-base/po/zh-cn/base.p
 sed -i '9a\msgstr "为爱发电"' feeds/luci/modules/luci-base/po/zh-cn/base.po
 sed -i '10a \\' feeds/luci/modules/luci-base/po/zh-cn/base.po
 
-# 修改makefile
+# 修正部分从第三方仓库拉取的软件 Makefile 路径问题
 find package/*/ -maxdepth 2 -path "*/Makefile" | xargs -i sed -i 's/include\ \.\.\/\.\.\/luci\.mk/include \$(TOPDIR)\/feeds\/luci\/luci\.mk/g' {}
 find package/*/ -maxdepth 2 -path "*/Makefile" | xargs -i sed -i 's/include\ \.\.\/\.\.\/lang\/golang\/golang\-package\.mk/include \$(TOPDIR)\/feeds\/packages\/lang\/golang\/golang\-package\.mk/g' {}
 find package/*/ -maxdepth 2 -path "*/Makefile" | xargs -i sed -i 's/PKG_SOURCE_URL:=\@GHREPO/PKG_SOURCE_URL:=https:\/\/github\.com/g' {}
@@ -767,7 +766,6 @@ wget -qO- https://github.com/openwrt/packages/pull/20054.patch | patch -p1
 popd
 sed -i '/sysctl.d/d' feeds/packages/utils/dockerd/Makefile
 
-
 #9、全能推送（商店自己安装）
 #rm -rf feeds/luci/applications/luci-app-pushbot
 #git clone https://github.com/zzsj0928/luci-app-pushbot.git package/diy/luci-app-pushbot
@@ -931,7 +929,8 @@ merge_package master https://github.com/QiuSimons/OpenWrt-Add.git package/new  o
 
 #20、 OLED 驱动程序
 git clone -b master --depth 1 https://github.com/NateLol/luci-app-oled.git package/new/luci-app-oled
-# natmap
+
+#21、 natmap
 git clone --depth 1 --branch master --single-branch --no-checkout https://github.com/muink/luci-app-natmapt.git package/luci-app-natmapt
 pushd package/luci-app-natmapt
 umask 022
@@ -948,16 +947,9 @@ umask 022
 git checkout
 popd
 
-#21、 uwsgi
-sed -i 's,procd_set_param stderr 1,procd_set_param stderr 0,g' feeds/packages/net/uwsgi/files/uwsgi.init
-sed -i 's,buffer-size = 10000,buffer-size = 131072,g' feeds/packages/net/uwsgi/files-luci-support/luci-webui.ini
-sed -i 's,logger = luci,#logger = luci,g' feeds/packages/net/uwsgi/files-luci-support/luci-webui.ini
-sed -i '$a cgi-timeout = 600' feeds/packages/net/uwsgi/files-luci-support/luci-*.ini
-sed -i 's/threads = 1/threads = 2/g' feeds/packages/net/uwsgi/files-luci-support/luci-webui.ini
-sed -i 's/processes = 3/processes = 4/g' feeds/packages/net/uwsgi/files-luci-support/luci-webui.ini
-sed -i 's/cheaper = 1/cheaper = 2/g' feeds/packages/net/uwsgi/files-luci-support/luci-webui.ini
-# rpcd
-sed -i 's/option timeout 30/option timeout 60/g' package/system/rpcd/files/rpcd.config
-sed -i 's#20) \* 1000#60) \* 1000#g' feeds/luci/modules/luci-base/htdocs/luci-static/resources/rpc.js
+# 22、UPX 可执行软件压缩
+sed -i '/patchelf pkgconf/i\tools-y += ucl upx' ./tools/Makefile
+sed -i '\/autoconf\/compile :=/i\$(curdir)/upx/compile := $(curdir)/ucl/compile' ./tools/Makefile
+merge_package main https://github.com/Lienol/openwrt.git ./tools tools/ucl tools/upx
 
 ##########################################################################
