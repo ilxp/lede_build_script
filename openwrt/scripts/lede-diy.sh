@@ -86,6 +86,10 @@ rm -rf package/wwan/app/luci-app-pcimodem
 rm -rf package/wwan/app/luci-app-spdmodem
 rm -rf package/lean/mentohust
 rm -rf ./feeds/packages/utils/v2dat
+
+#luci-ssl替换
+#sed -i "s/libustream-mbedtls/libustream-openssl/g" feeds/luci/collections/luci-ssl/Makefile
+
 ###################
 
 #四、系统优化########
@@ -586,6 +590,9 @@ rm -rf *.tar.gz&&mkdir -p package/base-files/files/usr/bin&&mv AdGuardHome/AdGua
 
 #merge_package main https://github.com/ilxp/luci-app-ikoolproxy.git package/new luci-app-ikoolproxy
 git clone -b main --single-branch https://github.com/ilxp/luci-app-ikoolproxy.git package/diy/luci-app-ikoolproxy
+
+#剔除libustream-openssl的依赖
+sed -i 's/openssl-util +ipset/ipset/g' package/diy/luci-app-ikoolproxy/Makefile
 
 
 #3）dnsfilter过滤广告kiddin9大神
